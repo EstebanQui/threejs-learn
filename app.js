@@ -25,7 +25,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 // Activer le tonemapping pour les HDR
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
-renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 // Charger la texture HDR du background
 function loadHDRBackground() {
