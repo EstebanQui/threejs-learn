@@ -12,4 +12,14 @@ export default defineConfig({
     },
   },
   publicDir: 'assets',
+  server: {
+    fs: {
+      allow: ['..']
+    }
+  },
+  resolve: {
+    alias: {
+      '@assets': resolve(__dirname, 'assets')
+    }
+  }
 }); 

@@ -75,7 +75,7 @@ ground.receiveShadow = true;
 scene.add(ground);
 
 textureLoader.load(
-    'assets/jungle_trees/ground.jpg',
+    'assets/jungle_trees/textures/Jungle_Floor_Material_diffuse.png',
     function(texture) {
         texture.wrapS = THREE.RepeatWrapping;
         texture.wrapT = THREE.RepeatWrapping;
