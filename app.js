@@ -228,10 +228,10 @@ let ratAction = null;
 
 // Variables de jeu
 const gameState = {
-    level: 1,
+    level: 2,  // Commencer au niveau 2 pour plus de vitesse
     score: 0,
     highScore: localStorage.getItem('highScore') || 0,
-    ratSpeed: 0.08,
+    ratSpeed: 0.15,  // Vitesse de base du rat plus élevée
     ratsNeededForNextLevel: 5
 };
 
@@ -265,7 +265,7 @@ function updateGameUI() {
 // Fonction pour passer au niveau suivant
 function levelUp() {
     gameState.level++;
-    gameState.ratSpeed += 0.02; // Augmenter la vitesse des rats
+    gameState.ratSpeed += 0.04; // Augmenter davantage la vitesse des rats à chaque niveau
     ratMovement.speed = gameState.ratSpeed;
     
     // Effet visuel pour le changement de niveau
@@ -386,7 +386,7 @@ function loadRat() {
 const ratMovement = {
     position: new THREE.Vector3(0, 0, 0),
     direction: new THREE.Vector2(Math.random() * 2 - 1, Math.random() * 2 - 1),
-    speed: 0.08,
+    speed: 0.2,
     changeDirectionTime: 0,
     changeDirectionInterval: 3
 };
@@ -412,9 +412,12 @@ function updateRatMovement(delta) {
         ratMovement.changeDirectionInterval = 2 + Math.random() * 3;
     }
     
-    // Déplacer le rat
-    currentRat.position.x += ratMovement.direction.x * ratMovement.speed;
-    currentRat.position.z += ratMovement.direction.y * ratMovement.speed;
+    // Déplacer le rat avec delta normalisé pour consistance
+    const normalizedDelta = Math.min(delta, 0.05) * 60; // Normalisation basée sur 60fps
+    const moveSpeed = ratMovement.speed * normalizedDelta;
+    
+    currentRat.position.x += ratMovement.direction.x * moveSpeed;
+    currentRat.position.z += ratMovement.direction.y * moveSpeed;
     
     // Orienter le rat dans la direction du mouvement
     currentRat.rotation.y = Math.atan2(ratMovement.direction.x, ratMovement.direction.y);
@@ -499,10 +502,10 @@ let moveAction = null;
 const movementControls = {
     velocity: new THREE.Vector3(0, 0, 0),  // Vélocité actuelle
     direction: new THREE.Vector3(0, 0, 0),  // Direction souhaitée
-    speed: 0.025,                          // Augmenté pour une meilleure réactivité
-    maxSpeed: 0.2,                         // Augmenté pour un déplacement plus rapide
-    turnSpeed: 0.1,                        // Augmenté pour une rotation plus rapide
-    friction: 0.85,                        // Réduit pour moins de glissement
+    speed: 0.065,                          // Augmenter davantage pour une meilleure réactivité
+    maxSpeed: 0.25,                        // Augmenter pour un déplacement plus rapide
+    turnSpeed: 0.15,                       // Augmenter pour une rotation plus rapide
+    friction: 0.85,                        // Maintenir la même friction
     isMoving: false,
     threshold: 0.001,
     hitBoundary: false,
@@ -810,7 +813,7 @@ function checkRats() {
         console.log(`Rat ${i+1}:`);
         console.log(` - Position: (${rat.model.position.x.toFixed(2)}, ${rat.model.position.y.toFixed(2)}, ${rat.model.position.z.toFixed(2)})`);
         console.log(` - Direction: (${rat.direction.x.toFixed(2)}, ${rat.direction.y.toFixed(2)})`);
-        console.log(` - Vitesse: ${rat.speed.toFixed(3)}`);
+        console.log(` - Vitesse: ${rat.speed.toFixed(5)}`);
         console.log(` - Animation: ${rat.action ? "Active" : "Non définie"}`);
     }
     console.log(`================================`);
@@ -856,8 +859,9 @@ function updateMovement(delta) {
 
     // Normaliser delta pour éviter les problèmes liés à la fréquence d'images
     const normalizedDelta = Math.min(delta, 0.05);
+    const deltaFactor = normalizedDelta * 60; // Facteur basé sur 60fps pour constance
 
-    // Rotation plus directe
+    // Rotation plus directe et rapide
     if (movementControls.isMoving) {
         // Calculer la différence d'angle pour le chemin le plus court
         let angleDiff = movementControls.targetRotation - movementControls.currentRotation;
@@ -867,14 +871,14 @@ function updateMovement(delta) {
         while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
         
         // Rotation plus rapide et plus directe
-        movementControls.currentRotation += angleDiff * movementControls.turnSpeed * 15 * normalizedDelta;
+        movementControls.currentRotation += angleDiff * movementControls.turnSpeed * 20 * normalizedDelta;
     }
     
     // Appliquer la rotation au modèle
     player.rotation.y = movementControls.currentRotation;
 
     // Appliquer une friction adaptée à delta
-    movementControls.velocity.multiplyScalar(Math.pow(movementControls.friction, normalizedDelta * 60));
+    movementControls.velocity.multiplyScalar(Math.pow(movementControls.friction, deltaFactor));
     
     // Animation très simple: faire bouger légèrement le modèle quand il se déplace
     if (player && movementControls.isMoving) {
@@ -890,15 +894,15 @@ function updateMovement(delta) {
     
     if (movementControls.isMoving) {
         // Calculer la force de mouvement
-        const speed = keys.shift ? movementControls.maxSpeed * 1.5 : movementControls.speed;
+        const speed = keys.shift ? movementControls.maxSpeed * 1.8 : movementControls.speed;
         
-        // Accélération plus directe
-        const acceleration = movementControls.direction.clone().multiplyScalar(speed * normalizedDelta * 60);
+        // Accélération plus directe et plus forte
+        const acceleration = movementControls.direction.clone().multiplyScalar(speed * deltaFactor * 1.5);
         movementControls.velocity.add(acceleration);
         
         // Limiter la vitesse maximale avec une transition plus douce
         const currentSpeed = movementControls.velocity.length();
-        const maxSpeed = keys.shift ? movementControls.maxSpeed * 1.5 : movementControls.maxSpeed;
+        const maxSpeed = keys.shift ? movementControls.maxSpeed * 1.8 : movementControls.maxSpeed;
         
         if (currentSpeed > maxSpeed) {
             const scaleFactor = 1.0 - Math.min(1.0, (currentSpeed - maxSpeed) / maxSpeed * 10 * normalizedDelta);
@@ -906,7 +910,7 @@ function updateMovement(delta) {
         }
     } else {
         // Arrêt plus rapide quand on ne bouge pas
-        movementControls.velocity.multiplyScalar(Math.pow(0.7, normalizedDelta * 60));
+        movementControls.velocity.multiplyScalar(Math.pow(0.6, deltaFactor));
         
         // Arrêter complètement sous le seuil
         if (movementControls.velocity.length() < movementControls.threshold) {
@@ -916,7 +920,7 @@ function updateMovement(delta) {
     
     // Appliquer la vélocité avec une petite prédiction
     const newPosition = player.position.clone().add(
-        movementControls.velocity.clone().multiplyScalar(1.0 + normalizedDelta * 10)
+        movementControls.velocity.clone().multiplyScalar(1.0 + normalizedDelta * 15)
     );
     
     // Vérifier les collisions
