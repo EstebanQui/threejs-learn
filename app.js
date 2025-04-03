@@ -2,14 +2,11 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 
-// Élément d'info pour afficher les messages de statut
 const infoElement = document.getElementById('info');
 infoElement.textContent = 'Initialisation...';
 
 //Scene
 const scene = new THREE.Scene();
-// Ne pas définir la couleur de fond de la scène ici, elle sera remplacée par la skybox HDR
-// scene.background = new THREE.Color(0x87ceeb);
 scene.fog = new THREE.FogExp2(0x88BBEE, 0.01);
 
 //Camera
@@ -22,12 +19,10 @@ const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('game
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-// Activer le tonemapping pour les HDR
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-// Charger la texture HDR du background
 function loadHDRBackground() {
     const hdrLoader = new RGBELoader();
     hdrLoader.setDataType(THREE.FloatType);
@@ -37,13 +32,11 @@ function loadHDRBackground() {
     hdrLoader.load('assets/background/rogland_moonlit_night_4k.hdr', (texture) => {
         texture.mapping = THREE.EquirectangularReflectionMapping;
         
-        // Appliquer la texture HDR comme environnement et fond de la scène
         scene.background = texture;
-        scene.environment = texture; // Éclairage basé sur l'image (IBL)
+        scene.environment = texture;
         
         infoElement.textContent = 'Fond chargé avec succès!';
         
-        // Ajuster l'intensité des lumières pour qu'elles s'adaptent au nouveau fond
         adjustLightsForHDR();
     }, 
     (xhr) => {
@@ -53,70 +46,55 @@ function loadHDRBackground() {
     (error) => {
         console.error('Erreur lors du chargement du fond HDR:', error);
         infoElement.textContent = 'Erreur lors du chargement du fond. Utilisation du fond par défaut.';
-        // Fallback au fond bleu classique
         scene.background = new THREE.Color(0x87ceeb);
     });
 }
 
-// Ajuster les lumières pour s'adapter au fond HDR
 function adjustLightsForHDR() {
-    // Réduire l'intensité de la lumière ambiante car le HDR fournit déjà de l'éclairage
     ambientLight.intensity = 0.2;
     
-    // Ajuster la lumière directionnelle principale
     directionalLight.intensity = 0.7;
     
-    // Ajuster la lumière d'appoint
     fillLight.intensity = 0.2;
 }
 
-// Charger le fond HDR
 loadHDRBackground();
 
-// Limites de la zone de jeu
 const GROUND_SIZE = 100;
 const BOUNDARY_SIZE = GROUND_SIZE / 2;
-const PLAYER_SIZE = 1.0; // Taille approximative du serpent
+const PLAYER_SIZE = 1.0;
 
-// Création du sol avec texture
 const textureLoader = new THREE.TextureLoader();
 
-// Créer une texture de sol de secours au cas où le chargement échoue
 const defaultGroundMaterial = new THREE.MeshPhongMaterial({ color: 0x4CAF50 });
 
-// Créer le sol avec la texture par défaut d'abord
 const groundGeometry = new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE, 1, 1);
 const ground = new THREE.Mesh(groundGeometry, defaultGroundMaterial);
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 
-// Charger la texture du sol avec des options de gestion d'erreurs
 textureLoader.load(
     'assets/jungle_trees/ground.jpg',
     function(texture) {
-        // Configurer correctement la texture
         texture.wrapS = THREE.RepeatWrapping;
         texture.wrapT = THREE.RepeatWrapping;
-        texture.repeat.set(20, 20); // Augmenter le nombre de répétitions
-        texture.anisotropy = renderer.capabilities.getMaxAnisotropy(); // Améliorer la netteté
+        texture.repeat.set(20, 20);
+        texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
         
-        // Créer un matériau avec la texture
         const groundMaterial = new THREE.MeshPhongMaterial({ 
             map: texture,
-            color: 0x999999, // Teinte légère pour ajuster la couleur
+            color: 0x999999,
         });
         
-        // Appliquer le nouveau matériau au sol
         ground.material = groundMaterial;
         ground.material.needsUpdate = true;
     },
-    undefined, // Fonction de progression - non utilisée
+    undefined,
     function(error) {
         console.error('Erreur lors du chargement de la texture du sol:', error);
         infoElement.textContent = "Impossible de charger la texture du sol";
         
-        // Appliquer une couleur verte pour simuler l'herbe en cas d'échec
         ground.material = new THREE.MeshPhongMaterial({ 
             color: 0x4CAF50, 
             flatShading: false 
@@ -124,11 +102,10 @@ textureLoader.load(
     }
 );
 
-// Ajouter des murs invisibles pour les limites
 function createBoundaryWall(width, height, depth, x, y, z) {
     const wallGeometry = new THREE.BoxGeometry(width, height, depth);
     const wallMaterial = new THREE.MeshPhongMaterial({ 
-        color: 0x8B4513, // Marron
+        color: 0x8B4513,
         transparent: true,
         opacity: 0.3
     });
@@ -229,7 +206,6 @@ function createTallGrass(x, z) {
     grassBlade.position.set(x, 0.75, z);
     grassBlade.rotation.x = Math.PI / 2;
     
-    // Créer une croix d'herbes
     const grassBlade2 = grassBlade.clone();
     grassBlade2.rotation.z = Math.PI / 2;
     
@@ -245,7 +221,7 @@ function createTallGrass(x, z) {
 let rats = [];
 
 // Modifier les variables globales pour le rat
-let currentRat = null; // Un seul rat à la fois
+let currentRat = null;
 let ratMixer = null;
 let ratAnimations = [];
 let ratAction = null;
@@ -259,7 +235,6 @@ const gameState = {
     ratsNeededForNextLevel: 5
 };
 
-// Remplacer le scoreElement existant par une interface plus complète
 const gameUI = document.createElement('div');
 gameUI.style.position = 'absolute';
 gameUI.style.top = '10px';
